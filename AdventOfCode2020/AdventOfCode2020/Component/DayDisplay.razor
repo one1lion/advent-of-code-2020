@@ -1,0 +1,34 @@
+﻿@Title
+
+@ProblemStatement1
+
+@if(curPart == 2) {
+  @ProblemStatement2
+}
+
+<p>Part @curPart: <span @onclick="ShowAnswer" style="cursor: pointer">@(curPart == 1 ? answer1 : answer2)</span></p>
+<button type="button" @onclick="ChangePart">@(curPart == 1 ? "Next" : "Previous") Part</button>
+
+@code {
+  [Parameter] public RenderFragment Title { get; set; }
+  [Parameter] public RenderFragment ProblemStatement1 { get; set; }
+  [Parameter] public RenderFragment ProblemStatement2 { get; set; }
+
+  [Parameter] public Func<string> GetAnswer1 { get; set; }
+  [Parameter] public Func<string> GetAnswer2 { get; set; }
+
+  int curPart = 1;
+  string answer1 = "Show Answer", answer2 = "Show Answer";
+
+  void ShowAnswer() {
+    if(curPart == 1) {
+      answer1 = GetAnswer1.Invoke();
+    } else {
+      answer2 = GetAnswer2.Invoke();
+    }
+  }
+
+  void ChangePart() {
+    curPart = curPart == 1 ? 2 : 1;
+  }
+}
