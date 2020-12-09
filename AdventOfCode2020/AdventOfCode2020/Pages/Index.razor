@@ -1,7 +1,14 @@
 ﻿@page "/"
 
-<h1>Hello, world!</h1>
+<h1>One1Lion's Solutions for Advent of Code 2020</h1>
 
-Welcome to your new app.
+<p>
+  These are my solutions to the Advent of Code 2020 challenges.  If you want to try it out, head to
+  <a href="https://adventofcode.com/2020" target="_blank">Advent of Code</a> to get started.
+</p>
 
-<SurveyPrompt Title="How is Blazor working for you?" />
+<ul>
+  @for(var i = 1; i < 4; i++) {
+    <li><a href="day@(i.ToString("0#"))">Day @i</a></li>
+  }
+</ul>

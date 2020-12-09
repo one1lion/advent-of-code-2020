@@ -1,4 +1,5 @@
-﻿<div class="top-row pl-4 navbar navbar-dark">
+﻿@inject NavigationManager NavigationManager
+<div class="top-row pl-4 navbar navbar-dark">
   <a class="navbar-brand" href="">AdventOfCode2020</a>
   <button class="navbar-toggler" @onclick="ToggleNavMenu">
     <span class="navbar-toggler-icon"></span>
@@ -13,19 +14,15 @@
       </NavLink>
     </li>
     <li class="nav-item px-3">
-      <NavLink class="nav-link" href="day01">
-        <span class="oi oi-aperture" aria-hidden="true"></span> Day 1
-      </NavLink>
-    </li>
-    <li class="nav-item px-3">
-      <NavLink class="nav-link" href="day02">
-        <span class="oi oi-aperture" aria-hidden="true"></span> Day 2
-      </NavLink>
-    </li>
-    <li class="nav-item px-3">
-      <NavLink class="nav-link" href="day03">
-        <span class="oi oi-aperture" aria-hidden="true"></span> Day 3
-      </NavLink>
+      <div class="nav-link">
+        <span class="oi oi-aperture" style="color:white;" aria-hidden="true"></span>
+        <select class="nav-select" @onchange="HandleDayPicked">
+          <option value="">- Pick a day - </option>
+          @for (var i = 1; i < 4; i++) {
+            <option value="@(i.ToString("0#"))">Day @i</option>
+          }
+        </select>
+      </div>
     </li>
   </ul>
 </div>
@@ -35,7 +32,15 @@
 
   private string NavMenuCssClass => collapseNavMenu ? "collapse" : null;
 
+  string selectedDay;
+
   private void ToggleNavMenu() {
     collapseNavMenu = !collapseNavMenu;
+  }
+
+  void HandleDayPicked(ChangeEventArgs e) {
+    Console.WriteLine($"Changing to {e.Value}");
+    if (string.IsNullOrWhiteSpace($"{e.Value}")) { return; }
+    NavigationManager.NavigateTo($"day{e.Value}");
   }
 }

@@ -1,34 +1,41 @@
 ﻿@Title
 
 @ProblemStatement1
+<p>Part 1: <span @onclick="_ => ShowAnswer(1)" style="@(!showAnswer1 ? "cursor: pointer" : "")">@answer1</span></p>
 
-@if(curPart == 2) {
-  @ProblemStatement2
+@if (showAnswer1) {
+  @Solution1
 }
 
-<p>Part @curPart: <span @onclick="ShowAnswer" style="cursor: pointer">@(curPart == 1 ? answer1 : answer2)</span></p>
-<button type="button" @onclick="ChangePart">@(curPart == 1 ? "Next" : "Previous") Part</button>
+<hr />
+
+@ProblemStatement2
+<p>Part 2: <span @onclick="_ => ShowAnswer(2)" style="@(!showAnswer2 ? "cursor: pointer" : "")">@answer2</span></p>
+@if (showAnswer2) {
+  @Solution2
+}
+
 
 @code {
   [Parameter] public RenderFragment Title { get; set; }
   [Parameter] public RenderFragment ProblemStatement1 { get; set; }
+  [Parameter] public RenderFragment Solution1 { get; set; }
   [Parameter] public RenderFragment ProblemStatement2 { get; set; }
+  [Parameter] public RenderFragment Solution2 { get; set; }
 
   [Parameter] public Func<string> GetAnswer1 { get; set; }
   [Parameter] public Func<string> GetAnswer2 { get; set; }
 
-  int curPart = 1;
   string answer1 = "Show Answer", answer2 = "Show Answer";
+  bool showAnswer1, showAnswer2;
 
-  void ShowAnswer() {
-    if(curPart == 1) {
+  void ShowAnswer(int curPart) {
+    if (curPart == 1) {
       answer1 = GetAnswer1.Invoke();
+      showAnswer1 = true;
     } else {
       answer2 = GetAnswer2.Invoke();
+      showAnswer2 = true;
     }
-  }
-
-  void ChangePart() {
-    curPart = curPart == 1 ? 2 : 1;
   }
 }

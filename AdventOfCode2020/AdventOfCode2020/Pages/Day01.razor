@@ -27,12 +27,50 @@
     <p>In this list, the two entries that sum to <code>2020</code> are <code>1721</code> and <code>299</code>. Multiplying them together produces <code>1721 * 299 = 514579</code>, so the correct answer is <code><em>514579</em></code>.</p>
     <p>Of course, your expense report is much larger. <em>Find the two entries that sum to <code>2020</code>; what do you get if you multiply them together?</em></p>
   </ProblemStatement1>
+  <Solution1>
+@((MarkupString)new CodeColorizer().Colorize(@"// Setup
+List<int> input;
+
+protected override async Task OnInitializedAsync() {
+  var resp = await HttpClient.GetAsync(""data/day01/input.txt"");
+  input = (await resp.Content.ReadAsStringAsync())
+    .Split('\r', '\n')
+    .Select(x => int.TryParse(x, out int outVal) ? outVal : 0)
+    .Where(x => x != 0)
+    .OrderBy(x => x).ToList();
+  Console.WriteLine(string.Join(""\r\n"", input));
+}
+
+string GetAnswer1() {
+  foreach (var curNum in input) {
+    var found2020 = input.SingleOrDefault(x => x > curNum && x + curNum == 2020);
+    if (found2020 > 0) {
+      return (curNum * found2020).ToString();
+    }
+  }
+  return ""I didn't find two numbers totaling 2020.  I failed you."";
+}", Languages.CSharp))
+  </Solution1>
   <ProblemStatement2>
     <h3>-- Part 2 --</h3>
     <p>The Elves in accounting are thankful for your help; one of them even offers you a starfish coin they had left over from a past vacation. They offer you a second one if you can find <em>three</em> numbers in your expense report that meet the same criteria.</p>
     <p>Using the above example again, the three entries that sum to <code>2020</code> are <code>979</code>, <code>366</code>, and <code>675</code>. Multiplying them together produces the answer, <code><em>241861950</em></code>.</p>
     <p>In your expense report, <em>what is the product of the three entries that sum to <code>2020</code>?</em></p>
   </ProblemStatement2>
+<Solution2>
+@((MarkupString)new CodeColorizer().Colorize(@"// Using Setup from Part 1
+string GetAnswer2() {
+  foreach (var firstNum in input) {
+    foreach (var secondNum in input.Where(x => x != firstNum)) {
+      var found2020 = input.SingleOrDefault(x => !new[] { firstNum, secondNum }.Contains(x) && x + firstNum + secondNum == 2020);
+      if (found2020 > 0) {
+        return (firstNum * secondNum * found2020).ToString();
+      }
+    }
+  }
+  return ""I didn't find three numbers totaling 2020.  I failed you."";
+}", Languages.CSharp))
+</Solution2>
 </DayDisplay>
 
 @code {

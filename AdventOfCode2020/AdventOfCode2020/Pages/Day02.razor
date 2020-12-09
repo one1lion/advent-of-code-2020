@@ -1,5 +1,4 @@
 ﻿@page "/day02"
-@using AdventOfCode2020.Models.Day02
 @inject HttpClient HttpClient
 
 
@@ -23,6 +22,45 @@
     <p>In the above example, <code><em>2</em></code> passwords are valid. The middle password, <code>cdefg</code>, is not; it contains no instances of <code>b</code>, but needs at least <code>1</code>. The first and third passwords are valid: they contain one <code>a</code> or nine <code>c</code>, both within the limits of their respective policies.</p>
     <p><em>How many passwords are valid</em> according to their policies?</p>
   </ProblemStatement1>
+  <Solution1>
+@((MarkupString)new CodeColorizer().Colorize(@"// PasswordInfo defined in Day02.razor.cs
+public class PasswordInfo {
+  public int MinCount { get; set; }
+  public int MaxCount { get; set; }
+  public char WhichChar { get; set; }
+  public string Password { get; set; }
+
+  public bool IsValid =>
+    !new[] {
+      MinCount - 1,
+      MaxCount + 1
+    }.Contains(
+      Math.Clamp(
+        Password.Count(x => x == WhichChar),
+        MinCount - 1,
+        MaxCount + 1));
+}
+
+// @code in Day02.razor
+// Setup
+List<PasswordInfo> input;
+
+protected override async Task OnInitializedAsync() {
+  var resp = await HttpClient.GetAsync(""data/day02/input.txt"");
+  input = (await resp.Content.ReadAsStringAsync())
+    .Split('\r', '\n')
+    .Where(x => !string.IsNullOrWhiteSpace(x) && x.Contains(""-""))
+    .Select(x => new PasswordInfo() {
+      MinCount = int.Parse(x.Split(""-"")[0]),
+      MaxCount = int.Parse(x.Split(""-"")[1].Split("" "")[0]),
+      WhichChar = x.Split("" "")[1][0],
+      Password = x.Split("" "").Last()
+    })
+    .ToList();
+}
+
+string GetAnswer1() => input.Count(x => x.IsValid).ToString();", Languages.CSharp))
+  </Solution1>
   <ProblemStatement2>
     <h3>-- Part 2 --</h3>
     <p>Your flight departs in a few days from the coastal airport; the easiest way down to the coast from here is via <a href="https://en.wikipedia.org/wiki/Toboggan" target="_blank">toboggan</a>.</p>
@@ -38,15 +76,30 @@
     <p>In the above example, <code><em>2</em></code> passwords are valid. The middle password, <code>cdefg</code>, is not; it contains no instances of <code>b</code>, but needs at least <code>1</code>. The first and third passwords are valid: they contain one <code>a</code> or nine <code>c</code>, both within the limits of their respective policies.</p>
     <p><em>How many passwords are valid</em> according to their policies?</p>
   </ProblemStatement2>
+  <Solution2>
+@((MarkupString)new CodeColorizer().Colorize(@"// Setup
+// Modified PasswordInfo defined in Day02.razor.cs
+public class PasswordInfo {
+  // .. Everything through bool IsValid is the same
+
+  // XOR
+  public bool IsValid2 =>
+    (Password[MinCount - 1] == WhichChar ? 1 : 0)
+    + (Password[MaxCount - 1] == WhichChar ? 1 : 0) == 1;
+}
+
+// @@code in Day02.razor
+string GetAnswer2() => input.Count(x => x.IsValid2).ToString();", Languages.CSharp))
+  </Solution2>
 </DayDisplay>
 
 @code {
   List<PasswordInfo> input;
 
   protected override async Task OnInitializedAsync() {
-    // Input e.g.: 
+    // Input e.g.:
     //   8-9 x: xxxxxxxrk
-    // Where 
+    // Where
     //  "8-9" is a limit of how many times the specified character must exist in the password
     //  "x" is the character that must exist the specified number of times
     //  "xxxxxxxrk" is the password
@@ -64,11 +117,7 @@
     //Console.WriteLine(string.Join("\r\n", input));
   }
 
-  string GetAnswer1() {
-    return input.Count(x => x.IsValid).ToString();
-  }
+  string GetAnswer1() => input.Count(x => x.IsValid).ToString();
 
-  string GetAnswer2() {
-    return input.Count(x => x.IsValid2).ToString();
-  }
+  string GetAnswer2() => input.Count(x => x.IsValid2).ToString();
 }

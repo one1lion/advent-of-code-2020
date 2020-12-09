@@ -55,6 +55,40 @@
     <p>In this example, traversing the map using this slope would cause you to encounter <code><em>7</em></code> trees.</p>
     <p>Starting at the top-left corner of your map and following a slope of right 3 and down 1, <em>how many trees would you encounter?</em></p>
   </ProblemStatement1>
+  <Solution1>
+@((MarkupString)new CodeColorizer().Colorize(@"// Setup
+List<List<char>> input;
+
+protected override async Task OnInitializedAsync() {
+  var resp = await HttpClient.GetAsync(""data/day03/input.txt"");
+  input = new List<List<char>>();
+  var respString = await resp.Content.ReadAsStringAsync();
+  var lines = respString.Split('\r', '\n').Where(x => !string.IsNullOrWhiteSpace(x));
+  foreach (var curLine in lines) {
+    var curRow = curLine.ToCharArray().ToList();
+    input.Add(curRow);
+  }
+}
+
+// Helper Method
+int CountTreeHit(int right, int down) {
+  var curXPos = 0;
+  var numTrees = 0;
+  for (var curYPos = down; curYPos < input.Count(); curYPos += down) {
+    var curRow = input[curYPos];
+    curXPos += right;
+    if (curXPos >= curRow.Count()) {
+      curXPos -= curRow.Count();
+    }
+    if (curRow[curXPos] == '#') {
+      numTrees++;
+    }
+  }
+  return numTrees;
+}
+
+string GetAnswer1() => CountTreeHit(3, 1).ToString();", Languages.CSharp))
+  </Solution1>
   <ProblemStatement2>
     <h3>-- Part 2 --</h3>
     <p>Time to check the rest of the slopes - you need to minimize the probability of a sudden arboreal stop, after all.</p>
@@ -69,6 +103,14 @@
     <p>In the above example, these slopes would find <code>2</code>, <code>7</code>, <code>3</code>, <code>4</code>, and <code>2</code> tree(s) respectively; multiplied together, these produce the answer <code><em>336</em></code>.</p>
     <p><em>What do you get if you multiply together the number of trees encountered on each of the listed slopes?</em></p>
   </ProblemStatement2>
+  <Solution2>
+    @((MarkupString)new CodeColorizer().Colorize(@"// Using setup from part 1
+string GetAnswer2() => (CountTreeHit(1, 1)
+  * CountTreeHit(3, 1)
+  * CountTreeHit(5, 1)
+  * CountTreeHit(7, 1)
+  * CountTreeHit(1, 2)).ToString();", Languages.CSharp))
+  </Solution2>
 </DayDisplay>
 
 @code {
@@ -83,23 +125,16 @@
       var curRow = curLine.ToCharArray().ToList();
       input.Add(curRow);
     }
-    Console.WriteLine("Ready");
   }
 
-  string GetAnswer1() {
-    // Right 3 and down one: How many trees?
-    return CountTreeHit(3, 1).ToString();
-  }
+  // Right 3 and down one: How many trees?
+  string GetAnswer1() => CountTreeHit(3, 1).ToString();
 
-  string GetAnswer2() {
-    var product = 1;
-    product *= CountTreeHit(1, 1);
-    product *= CountTreeHit(3, 1);
-    product *= CountTreeHit(5, 1);
-    product *= CountTreeHit(7, 1);
-    product *= CountTreeHit(1, 2);
-    return product.ToString();
-  }
+  string GetAnswer2() => (CountTreeHit(1, 1)
+    * CountTreeHit(3, 1)
+    * CountTreeHit(5, 1)
+    * CountTreeHit(7, 1)
+    * CountTreeHit(1, 2)).ToString();
 
   int CountTreeHit(int right, int down) {
     var curXPos = 0;
