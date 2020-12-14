@@ -5,7 +5,7 @@
 <DayDisplay GetAnswer1="GetAnswer1"
             GetAnswer2="GetAnswer2">
   <Title>
-    <h2>--- Day 2: Password Philosophy ---</h2>
+    <h2>--- Day @dayNum: @dayTitle ---</h2>
   </Title>
   <ProblemStatement1>
     <h3>-- Part 1 --</h3>
@@ -94,6 +94,8 @@ string GetAnswer2() => input.Count(x => x.IsValid2).ToString();", Languages.CSha
 </DayDisplay>
 
 @code {
+  int dayNum = 2;
+  string dayTitle = "Password Philosophy";
   List<PasswordInfo> input;
 
   protected override async Task OnInitializedAsync() {
@@ -103,7 +105,7 @@ string GetAnswer2() => input.Count(x => x.IsValid2).ToString();", Languages.CSha
     //  "8-9" is a limit of how many times the specified character must exist in the password
     //  "x" is the character that must exist the specified number of times
     //  "xxxxxxxrk" is the password
-    var resp = await HttpClient.GetAsync("data/day02/input.txt");
+    var resp = await HttpClient.GetAsync($"data/day{dayNum.ToString("0#")}/input.txt");
     input = (await resp.Content.ReadAsStringAsync())
       .Split('\r', '\n')
       .Where(x => !string.IsNullOrWhiteSpace(x) && x.Contains("-"))

@@ -5,7 +5,7 @@
 <DayDisplay GetAnswer1="GetAnswer1"
             GetAnswer2="GetAnswer2">
   <Title>
-    <h2>--- Day 3: Toboggan Trajectory ---</h2>
+    <h2>--- Day @dayNum: @dayTitle ---</h2>
   </Title>
   <ProblemStatement1>
     <h3>-- Part 1 --</h3>
@@ -114,10 +114,12 @@ string GetAnswer2() => (CountTreeHit(1, 1)
 </DayDisplay>
 
 @code {
+  int dayNum = 3;
+  string dayTitle = "Toboggan Trajectory";
   List<List<char>> input;
 
   protected override async Task OnInitializedAsync() {
-    var resp = await HttpClient.GetAsync("data/day03/input.txt");
+    var resp = await HttpClient.GetAsync($"data/day{dayNum.ToString("0#")}/input.txt");
     input = new List<List<char>>();
     var respString = await resp.Content.ReadAsStringAsync();
     var lines = respString.Split('\r', '\n').Where(x => !string.IsNullOrWhiteSpace(x));

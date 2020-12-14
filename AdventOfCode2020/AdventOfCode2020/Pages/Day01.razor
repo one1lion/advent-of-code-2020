@@ -6,7 +6,7 @@
 <DayDisplay GetAnswer1="GetAnswer1"
             GetAnswer2="GetAnswer2">
   <Title>
-    <h2>--- Day 1: Report Repair ---</h2>
+    <h2>--- Day @dayNum: @dayTitle ---</h2>
   </Title>
   <ProblemStatement1>
     <h3>-- Part 1 --</h3>
@@ -74,10 +74,12 @@ string GetAnswer2() {
 </DayDisplay>
 
 @code {
+  int dayNum = 1;
+  string dayTitle = "Report Repair";
   List<int> input;
 
   protected override async Task OnInitializedAsync() {
-    var resp = await HttpClient.GetAsync("data/day01/input.txt");
+    var resp = await HttpClient.GetAsync($"data/day{dayNum.ToString("0#")}/input.txt");
     input = (await resp.Content.ReadAsStringAsync())
       .Split('\r', '\n')
       .Select(x => int.TryParse(x, out int outVal) ? outVal : 0)

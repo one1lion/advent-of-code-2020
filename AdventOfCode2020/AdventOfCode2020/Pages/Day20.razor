@@ -1,0 +1,46 @@
+﻿@page "/day20"
+
+@inject HttpClient HttpClient
+
+<DayDisplay GetAnswer1="GetAnswer1"
+            GetAnswer2="GetAnswer2">
+  <Title>
+    <h2>--- Day @dayNum: @dayTitle ---</h2>
+  </Title>
+  <ProblemStatement1>
+    <h3>-- Part 1 --</h3>
+
+  </ProblemStatement1>
+  <Solution1>
+    @((MarkupString)new CodeColorizer().Colorize(@"", Languages.CSharp))
+  </Solution1>
+  <ProblemStatement2>
+    <h3>-- Part 2 --</h3>
+
+  </ProblemStatement2>
+  <Solution2>
+    @((MarkupString)new CodeColorizer().Colorize(@"", Languages.CSharp))
+  </Solution2>
+</DayDisplay>
+
+@code {
+  int dayNum = 20;
+  string dayTitle = "";
+
+  //TODO: Declare input;
+
+  protected override async Task OnInitializedAsync() {
+    var resp = await HttpClient.GetAsync($"data/day{dayNum.ToString("0#")}/input.txt");
+    // TODO: Populate Input
+  }
+
+  string GetAnswer1() {
+    // TODO: Solve Part 1
+    throw new NotImplementedException();
+  }
+
+  string GetAnswer2() {
+    // TODO: Solve Part 1
+    throw new NotImplementedException();
+  }
+}

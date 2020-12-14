@@ -13,17 +13,15 @@
         <span class="oi oi-home" aria-hidden="true"></span> Home
       </NavLink>
     </li>
-    <li class="nav-item px-3">
-      <div class="nav-link">
-        <span class="oi oi-aperture" style="color:white;" aria-hidden="true"></span>
-        <select class="nav-select" @onchange="HandleDayPicked">
-          <option value="">- Pick a day - </option>
-          @for (var i = 1; i < 4; i++) {
-            <option value="@(i.ToString("0#"))">Day @i</option>
-          }
-        </select>
-      </div>
-    </li>
+    @for (var i = 1; i <= AppGlobals.CompletedDays; i++) {
+      var curDay = i;
+      <li class="nav-item px-3">
+        <NavLink class="nav-link" href="@($"day{curDay.ToString("0#")}")" Match="NavLinkMatch.All">
+          <span class="oi oi-aperture" aria-hidden="true"></span>
+          <span class="oi oi-home" aria-hidden="true"></span> Day @curDay
+        </NavLink>
+      </li>
+    }
   </ul>
 </div>
 
