@@ -50,7 +50,34 @@ acc +6  |
   </Solution1>
   <ProblemStatement2>
     <h3>-- Part 2 --</h3>
-
+    <p>After some careful analysis, you believe that <em>exactly one instruction is corrupted</em>.</p>
+    <p>Somewhere in the program, <em>either</em> a <code>jmp</code> is supposed to be a <code>nop</code>, <em>or</em> a <code>nop</code> is supposed to be a <code>jmp</code>. (No <code>acc</code> instructions were harmed in the corruption of this boot code.)</p>
+    <p>The program is supposed to terminate by <em>attempting to execute an instruction immediately after the last instruction in the file</em>. By changing exactly one <code>jmp</code> or <code>nop</code>, you can repair the boot code and make it terminate correctly.</p>
+    <p>For example, consider the same program from above:</p>
+<pre><code>nop +0
+acc +1
+jmp +4
+acc +3
+jmp -3
+acc -99
+acc +1
+jmp -4
+acc +6
+</code></pre>
+    <p>If you change the first instruction from <code>nop +0</code> to <code>jmp +0</code>, it would create a single-instruction infinite loop, never leaving that instruction.  If you change almost any of the <code>jmp</code> instructions, the program will still eventually find another <code>jmp</code> instruction and loop forever.</p>
+    <p>However, if you change the second-to-last instruction (from <code>jmp -4</code> to <code>nop -4</code>), the program terminates! The instructions are visited in this order:</p>
+<pre><code>nop +0  | 1
+acc +1  | 2
+jmp +4  | 3
+acc +3  |
+jmp -3  |
+acc -99 |
+acc +1  | 4
+<em>nop</em> -4  | 5
+acc +6  | 6
+</code></pre>
+    <p>After the last instruction (<code>acc +6</code>), the program terminates by attempting to run the instruction below the last instruction in the file.  With this change, after the program terminates, the accumulator contains the value <em><code>8</code></em> (<code>acc +1</code>, <code>acc +1</code>, <code>acc +6</code>).</p>
+    <p>Fix the program so that it terminates normally by changing exactly one <code>jmp</code> (to <code>nop</code>) or <code>nop</code> (to <code>jmp</code>). <em>What is the value of the accumulator after the program terminates?</em></p>
   </ProblemStatement2>
   <Solution2>
     @((MarkupString)new CodeColorizer().Colorize(@"", Languages.CSharp))
@@ -62,19 +89,84 @@ acc +6  |
   string dayTitle = "Handheld Halting";
 
   //TODO: Declare input;
+  List<Instruction> input;
 
   protected override async Task OnInitializedAsync() {
     var resp = await HttpClient.GetAsync($"data/day{dayNum.ToString("0#")}/input.txt");
-    // TODO: Populate Input
+    input = (await resp.Content.ReadAsStringAsync()).Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).Select(l => new Instruction() { InstructionText = l }).ToList();
   }
 
   string GetAnswer1() {
-    // TODO: Solve Part 1
-    throw new NotImplementedException();
+    var (accVal, exitVal) = TryExecute(input);
+    return accVal.ToString();
   }
 
   string GetAnswer2() {
-    // TODO: Solve Part 1
-    throw new NotImplementedException();
+    var curInstructions = input.Select(x => new Instruction() {
+      Operation = x.Operation,
+      Argument = x.Argument
+    }).ToList();
+    for (var i = 0; i < input.Count; i++) {
+      var instrSwap = "";
+      Console.Write($"Line {i.ToString("00#")}: {input[i].InstructionText}");
+      switch (input[i].Operation) {
+        case "jmp":
+          instrSwap = "nop";
+          break;
+        case "nop":
+          instrSwap = "jmp";
+          break;
+        default:
+          Console.WriteLine(" (No Change)");
+          continue;
+      }
+      curInstructions[i].Operation = instrSwap;
+      var (accVal, exitCode) = TryExecute(curInstructions.ToList());
+      Console.Write($" (Swapping to {instrSwap} produced exit code: {exitCode} after acc {accVal}");
+      if (exitCode == 0) {
+        Console.WriteLine(" - Success)");
+        return accVal.ToString();
+      }
+      Console.WriteLine(" - Failure, reverting instruction for next test)");
+      // Revert the instruction back
+      curInstructions[i].Operation = input[i].Operation;
+    }
+    return "I don't know...I failed";
+  }
+
+  (int AccVal, int ExitCode) TryExecute(List<Instruction> instructions) {
+    var accVal = 0;
+    var curPos = 0;
+    var visitedLines = new List<int>();
+    while (!visitedLines.Contains(curPos) && curPos < instructions.Count) {
+      visitedLines.Add(curPos);
+      switch (instructions[curPos].Operation) {
+        case "acc":
+          accVal += instructions[curPos].Argument;
+          curPos++;
+          break;
+        case "jmp":
+          curPos += instructions[curPos].Argument;
+          break;
+        default:
+          curPos++;
+          break;
+      }
+    }
+    return (accVal, curPos < instructions.Count ? -1 : 0);
+  }
+
+  class Instruction {
+    public string InstructionText {
+      get => $"{Operation} {(Argument > 0 ? "+" : "")}{Argument}";
+      set {
+        var line = value.Split(' ');
+        Operation = line[0];
+        Argument = int.Parse(line[1].Replace("+", ""));
+      }
+    }
+
+    public string Operation { get; set; }
+    public int Argument { get; set; }
   }
 }

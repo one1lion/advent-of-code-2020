@@ -47,7 +47,10 @@
   </Solution1>
   <ProblemStatement2>
     <h3>-- Part 2 --</h3>
-
+    <p><em>Ding!</em> The "fasten seat belt" signs have turned on. Time to find your seat.</p>
+    <p>It's a completely full flight, so your seat should be the only missing boarding pass in your list.  However, there's a catch: some of the seats at the very front and back of the plane don't exist on this aircraft, so they'll be missing from your list as well.</p>
+    <p>Your seat wasn't at the very front or back, though; the seats with IDs +1 and -1 from yours will be in your list.</p>
+    <p><em>What is the ID of your seat?</em></p>
   </ProblemStatement2>
   <Solution2>
     @((MarkupString)new CodeColorizer().Colorize(@"", Languages.CSharp))
@@ -58,20 +61,84 @@
   int dayNum = 5;
   string dayTitle = "Binary Boarding";
 
-  //TODO: Declare input;
+  List<string> input;
 
   protected override async Task OnInitializedAsync() {
     var resp = await HttpClient.GetAsync($"data/day{dayNum.ToString("0#")}/input.txt");
-    // TODO: Populate Input
+    input = (await resp.Content.ReadAsStringAsync()).Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).ToList();
   }
 
   string GetAnswer1() {
-    // TODO: Solve Part 1
-    throw new NotImplementedException();
+    var maxId = 0;
+    var maxIdPattern = "";
+    foreach (var curLine in input) {
+      var curRow = new RangeVal() { Min = 0, Max = 127 };
+      for (int i = 0; i < 7; i++) {
+        if (curLine[i] == 'F') {
+          curRow = curRow.LowerRange;
+        } else {
+          curRow = curRow.UpperRange;
+        }
+      }
+      var curCol = new RangeVal() { Min = 0, Max = 7 };
+      for (int i = 7; i < 10; i++) {
+        if (curLine[i] == 'L') {
+          curCol = curCol.LowerRange;
+        } else {
+          curCol = curCol.UpperRange;
+        }
+      }
+      var curId = curRow.Min * 8 + curCol.Min;
+      if (curId > maxId) {
+        maxId = curId;
+        maxIdPattern = $"{curLine}, Row: {curRow.Min}, Col: {curCol.Min}";
+      }
+    }
+    return $"MaxID: {maxId} From Pattern: {maxIdPattern}";
   }
 
   string GetAnswer2() {
-    // TODO: Solve Part 1
-    throw new NotImplementedException();
+    var ids = new List<int>();
+    foreach (var curLine in input) {
+      var curRow = new RangeVal() { Min = 0, Max = 127 };
+      for (int i = 0; i < 7; i++) {
+        if (curLine[i] == 'F') {
+          curRow = curRow.LowerRange;
+        } else {
+          curRow = curRow.UpperRange;
+        }
+      }
+      var curCol = new RangeVal() { Min = 0, Max = 7 };
+      for (int i = 7; i < 10; i++) {
+        if (curLine[i] == 'L') {
+          curCol = curCol.LowerRange;
+        } else {
+          curCol = curCol.UpperRange;
+        }
+      }
+      ids.Add(curRow.Min * 8 + curCol.Min);
+    }
+    var prevId = 0;
+    foreach(var curId in ids.OrderBy(x => x)) {
+      if(prevId > 0 && prevId == curId - 2) {
+        return (curId - 1).ToString();
+      }
+      prevId = curId;
+    }
+    return "I didn't find your seat...I failed you";
+  }
+
+  class RangeVal {
+    public int Min { get; set; }
+    public int Max { get; set; }
+
+    public RangeVal LowerRange => new RangeVal() {
+      Min = Min,
+      Max = Min + (int)Math.Floor((Max - Min) / 2.0)
+    };
+    public RangeVal UpperRange => new RangeVal() {
+      Min = Max - (int)Math.Floor((Max - Min) / 2.0),
+      Max = Max
+    };
   }
 }

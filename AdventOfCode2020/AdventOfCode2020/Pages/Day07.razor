@@ -39,7 +39,27 @@ dotted black bags contain no other bags.
   </Solution1>
   <ProblemStatement2>
     <h3>-- Part 2 --</h3>
-
+    <p>It's getting pretty expensive to fly these days - not because of ticket prices, but because of the ridiculous number of bags you need to buy!</p>
+    <p>Consider again your <code>shiny gold</code> bag and the rules from the above example:</p>
+    <ul>
+      <li><code>faded blue</code> bags contain <code>0</code> other bags.</li>
+      <li><code>dotted black</code> bags contain <code>0</code> other bags.</li>
+      <li><code>vibrant plum</code> bags contain <code>11</code> other bags: 5 <code>faded blue</code> bags and 6 <code>dotted black</code> bags.</li>
+      <li><code>dark olive</code> bags contain <code>7</code> other bags: 3 <code>faded blue</code> bags and 4 <code>dotted black</code> bags.</li>
+    </ul>
+    <p>So, a single <code>shiny gold</code> bag must contain 1 <code>dark olive</code> bag (and the 7 bags within it) plus 2 <code>vibrant plum</code> bags (and the 11 bags within <em>each</em> of those): <code>1 + 1*7 + 2 + 2*11</code> = <code><em>32</em></code> bags!</p>
+    <p>Of course, the actual rules have a <span title="100%">small</span> chance of going several levels deeper than this example; be sure to count all of the bags, even if the nesting becomes topologically impractical!</p>
+    <p>Here's another example:</p>
+<pre><code>shiny gold bags contain 2 dark red bags.
+dark red bags contain 2 dark orange bags.
+dark orange bags contain 2 dark yellow bags.
+dark yellow bags contain 2 dark green bags.
+dark green bags contain 2 dark blue bags.
+dark blue bags contain 2 dark violet bags.
+dark violet bags contain no other bags.
+</code></pre>
+    <p>In this example, a single <code>shiny gold</code> bag must contain <code><em>126</em></code> other bags.</p>
+    <p><em>How many individual bags are required inside your single <code>shiny gold</code> bag?</em></p>
   </ProblemStatement2>
   <Solution2>
     @((MarkupString)new CodeColorizer().Colorize(@"", Languages.CSharp))
@@ -50,20 +70,85 @@ dotted black bags contain no other bags.
   int dayNum = 7;
   string dayTitle = "Handy Haversacks";
 
-  //TODO: Declare input;
+  List<BagDetail> input = new List<BagDetail>();
+
+  bool sampleSwitch = false;
 
   protected override async Task OnInitializedAsync() {
-    var resp = await HttpClient.GetAsync($"data/day{dayNum.ToString("0#")}/input.txt");
-    // TODO: Populate Input
+    var resp = await HttpClient.GetAsync($"data/day{dayNum.ToString("0#")}/{(sampleSwitch ? "sample" : "input")}.txt");
+    var lines = (await resp.Content.ReadAsStringAsync()).Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+    input = lines.Select(l => new BagDetail() { RuleText = l, RequiredQuantity = 1 }).ToList();
   }
 
   string GetAnswer1() {
-    // TODO: Solve Part 1
-    throw new NotImplementedException();
+    string whichColor = "shiny gold";
+    var bags = FindBagsThatContain(whichColor).Where(x => x != whichColor);
+    Console.WriteLine(string.Join("\r\n", bags));
+    return bags.Count().ToString();
   }
 
-  string GetAnswer2() {
-    // TODO: Solve Part 1
-    throw new NotImplementedException();
+  List<string> FindBagsThatContain(string color, List<string> viewedBags = null) {
+    if (input is null) {
+      return null;
+    }
+    if (viewedBags is null) { viewedBags = new List<string>(); }
+    var currentBags = input.Where(x => x.ContainsBag(color) && !viewedBags.Contains(x.BagColor));
+    foreach (var curBag in currentBags) {
+      if (viewedBags.Contains(curBag.BagColor)) { continue; }
+      viewedBags = viewedBags.Union(new List<string> { curBag.BagColor }).ToList();
+      viewedBags = viewedBags.Union(FindBagsThatContain(curBag.BagColor, viewedBags) ?? new List<string>()).ToList();
+    }
+
+    return viewedBags.Count == 0 ? null : viewedBags;
+  }
+
+  string GetAnswer2() => (CountChildBags("shiny gold", 1) - 1).ToString(); // -1 for the Shiny Gold Bag that is carrying all of them
+
+  int CountChildBags(string forColor, int reqCount) { // 39645 is wrong
+    var curBag = input.Single(x => x.BagColor == forColor);
+    var cumulative = reqCount;
+    if (curBag.ChildBags?.Count > 0) {
+      foreach (var curChild in curBag.ChildBags) {
+        cumulative += reqCount * CountChildBags(curChild.BagColor, curChild.RequiredQuantity);
+      }
+    }
+
+    return cumulative;
+  }
+
+  class BagDetail {
+    string _RuleText;
+    public string RuleText {
+      get => RuleText;
+      set {
+        _RuleText = value;
+        ParseRule();
+      }
+    }
+
+    public string BagColor { get; set; }
+    public int RequiredQuantity { get; set; }
+
+    public BagDetail ParentBag { get; set; }
+    public List<BagDetail> ChildBags { get; set; }
+
+    public bool ContainsBag(string color) => ChildBags?.Any(x => x.BagColor == color) ?? false;
+
+    void ParseRule() {
+      BagColor = _RuleText.Split("bag")[0].Trim();
+      var bagInfos = _RuleText.Split("contain")[1].Split(",").Select(x => x.Trim()).ToList();
+      if (bagInfos[0] != "no other bags.") {
+        ChildBags = new List<BagDetail>();
+        foreach (var bagInfo in bagInfos) {
+          var quantity = int.Parse(bagInfo.Split(' ')[0]);
+          ChildBags.Add(new BagDetail() {
+            ParentBag = this,
+            RequiredQuantity = quantity,
+            BagColor = bagInfo.Replace(int.Parse(bagInfo.Split(' ')[0]).ToString(), "").Split("bag")[0].Trim()
+          });
+        }
+      }
+    }
   }
 }
