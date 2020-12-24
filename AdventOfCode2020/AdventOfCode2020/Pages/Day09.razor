@@ -56,7 +56,32 @@
   </Solution1>
   <ProblemStatement2>
     <h3>-- Part 2 --</h3>
-
+    <p>The final step in breaking the XMAS encryption relies on the invalid number you just found: you must <em>find a contiguous set of at least two numbers</em> in your list which sum to the invalid number from step 1.</p>
+    <p>Again consider the above example:</p>
+<pre><code>35
+20
+<em>15</em>
+<em>25</em>
+<em>47</em>
+<em>40</em>
+62
+55
+65
+95
+102
+117
+150
+182
+127
+219
+299
+277
+309
+576
+</code></pre>
+    <p>In this list, adding up all of the numbers from <code>15</code> through <code>40</code> produces the invalid number from step 1, <code>127</code>. (Of course, the contiguous set of numbers in your actual list might be much longer.)</p>
+    <p>To find the <em>encryption weakness</em>, add together the <em>smallest</em> and <em>largest</em> number in this contiguous range; in this example, these are <code>15</code> and <code>47</code>, producing <em><code>62</code></em>.</p>
+    <p><em>What is the encryption weakness in your XMAS-encrypted list of numbers?</em></p>
   </ProblemStatement2>
   <Solution2>
     @((MarkupString)new CodeColorizer().Colorize(@"", Languages.CSharp))
@@ -67,20 +92,56 @@
   int dayNum = 9;
   string dayTitle = "Encoding Error";
 
-  //TODO: Declare input;
+  List<long> input;
 
   protected override async Task OnInitializedAsync() {
     var resp = await HttpClient.GetAsync($"data/day{dayNum.ToString("0#")}/input.txt");
-    // TODO: Populate Input
+    input = (await resp.Content.ReadAsStringAsync()).Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).Select(x => long.Parse(x)).ToList();
   }
 
   string GetAnswer1() {
-    // TODO: Solve Part 1
-    throw new NotImplementedException();
+    var (invalidNum, index) = FindInvalidNum();
+    return invalidNum == -1 ? "I couldn't find it...I failed." : $"{invalidNum} found at index {index}";
   }
 
   string GetAnswer2() {
-    // TODO: Solve Part 1
-    throw new NotImplementedException();
+    var (invalidNum, index) = FindInvalidNum();
+    if (invalidNum == -1) { return "I couldn't find the invalid number...I failed."; }
+
+    for (var skip = index - 1; skip >= 0; skip--) {
+      var acc = input[skip];
+      var (min, max) = (acc, acc);
+      for(var j = skip - 1; j >= 0 && acc < invalidNum; j--) {
+        acc += input[j];
+        min = Math.Min(min, input[j]);
+        max = Math.Max(max, input[j]);
+      }
+      if(acc == invalidNum) {
+        return (min + max).ToString();
+      }
+    }
+    return "I couldn't find the sequence of numbers that total {invalidNum}...I failed.";
+  }
+
+  (long foundNum, int atIndex) FindInvalidNum() {
+    for (var skip = 0; skip < input.Count - 25; skip++) {
+      var curList = input.Skip(skip).Take(25);
+      var testNum = input[skip + 25];
+      if (!TestNum(testNum, curList.ToList())) {
+        return (testNum, skip);
+      }
+    }
+    return (-1, -1);
+  }
+
+  bool TestNum(long whichNum, List<long> last25) {
+    for (var i = 0; i < last25.Count; i++) {
+      for (var j = i + 1; j < last25.Count; j++) {
+        if (last25[i] + last25[j] == whichNum) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 }
