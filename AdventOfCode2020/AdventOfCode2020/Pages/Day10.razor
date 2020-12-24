@@ -206,6 +206,7 @@
     foreach (int c in oneJoltRunLengths) {
       totalCombinations *= runCombinations[c];
     }
+    // 1973822685184 - showed that it was wrong (but right for someone else)
     return $"{totalCombinations} ({(8796093022208 > totalCombinations ? "Lower" : "Higher")} than previous guess)";
   }
 }
