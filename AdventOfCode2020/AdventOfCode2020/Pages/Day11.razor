@@ -96,7 +96,113 @@ L.#.L..#..
   </Solution1>
   <ProblemStatement2>
     <h3>-- Part 2 --</h3>
-
+    <p>As soon as people start to arrive, you realize your mistake. People don't just care about adjacent seats - they care about <em>the first seat they can see</em> in each of those eight directions!</p>
+    <p>Now, instead of considering just the eight immediately adjacent seats, consider the <em>first seat</em> in each of those eight directions. For example, the empty seat below would see <em>eight</em> occupied seats:</p>
+<pre><code>.......#.
+...#.....
+.#.......
+.........
+..#L....#
+....#....
+.........
+#........
+...#.....
+</code></pre>
+    <p>The leftmost empty seat below would only see <em>one</em> empty seat, but cannot see any of the occupied ones:</p>
+<pre><code>.............
+.L.L.#.#.#.#.
+.............
+</code></pre>
+    <p>The empty seat below would see <em>no</em> occupied seats:</p>
+<pre><code>.##.##.
+#.#.#.#
+##...##
+...L...
+##...##
+#.#.#.#
+.##.##.
+</code></pre>
+    <p>Also, people seem to be more tolerant than you expected: it now takes <em>five or more</em> visible occupied seats for an occupied seat to become empty (rather than <em>four or more</em> from the previous rules). The other rules still apply: empty seats that see no occupied seats become occupied, seats matching no rule don't change, and floor never changes.</p>
+    <p>Given the same starting layout as above, these new rules cause the seating area to shift around as follows:</p>
+<pre><code>L.LL.LL.LL
+LLLLLLL.LL
+L.L.L..L..
+LLLL.LL.LL
+L.LL.LL.LL
+L.LLLLL.LL
+..L.L.....
+LLLLLLLLLL
+L.LLLLLL.L
+L.LLLLL.LL
+</code></pre>
+<pre><code>#.##.##.##
+#######.##
+#.#.#..#..
+####.##.##
+#.##.##.##
+#.#####.##
+..#.#.....
+##########
+#.######.#
+#.#####.##
+</code></pre>
+<pre><code>#.LL.LL.L#
+#LLLLLL.LL
+L.L.L..L..
+LLLL.LL.LL
+L.LL.LL.LL
+L.LLLLL.LL
+..L.L.....
+LLLLLLLLL#
+#.LLLLLL.L
+#.LLLLL.L#
+</code></pre>
+<pre><code>#.L#.##.L#
+#L#####.LL
+L.#.#..#..
+##L#.##.##
+#.##.#L.##
+#.#####.#L
+..#.#.....
+LLL####LL#
+#.L#####.L
+#.L####.L#
+</code></pre>
+<pre><code>#.L#.L#.L#
+#LLLLLL.LL
+L.L.L..#..
+##LL.LL.L#
+L.LL.LL.L#
+#.LLLLL.LL
+..L.L.....
+LLLLLLLLL#
+#.LLLLL#.L
+#.L#LL#.L#
+</code></pre>
+<pre><code>#.L#.L#.L#
+#LLLLLL.LL
+L.L.L..#..
+##L#.#L.L#
+L.L#.#L.L#
+#.L####.LL
+..#.#.....
+LLL###LLL#
+#.LLLLL#.L
+#.L#LL#.L#
+</code></pre>
+<pre><code>#.L#.L#.L#
+#LLLLLL.LL
+L.L.L..#..
+##L#.#L.L#
+L.L#.LL.L#
+#.LLLL#.LL
+..#.L.....
+LLL###LLL#
+#.LLLLL#.L
+#.L#LL#.L#
+</code></pre>
+    <p>Again, at this point, people stop shifting around and the seating area reaches equilibrium. Once this occurs, you count <em><code>26</code></em> occupied seats.</p>
+    <p>Given the new visibility method and the rule change for occupied seats becoming empty, once equilibrium is reached, <em>how many seats end up occupied?</em></p>
   </ProblemStatement2>
   <Solution2>
     @((MarkupString)new CodeColorizer().Colorize(@"", Languages.CSharp))
@@ -107,20 +213,231 @@ L.#.L..#..
   int dayNum = 11;
   string dayTitle = "Seating System";
 
-  //TODO: Declare input;
-
+  bool useSample;
+  List<char[]> input;
   protected override async Task OnInitializedAsync() {
-    var resp = await HttpClient.GetAsync($"data/day{dayNum.ToString("0#")}/input.txt");
-    // TODO: Populate Input
+    var resp = await HttpClient.GetAsync($"data/day{dayNum.ToString("0#")}/{(useSample ? "sample" : "input")}.txt");
+    input = (await resp.Content.ReadAsStringAsync()).Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+      .Select(x => x.ToCharArray()).ToList();
   }
 
   string GetAnswer1() {
-    // TODO: Solve Part 1
-    throw new NotImplementedException();
+    prevState = null;
+    return RunSimulation(input).ToString();
   }
 
   string GetAnswer2() {
-    // TODO: Solve Part 1
-    throw new NotImplementedException();
+    prevState = null;
+    return RunSimulation2(input).ToString();
+  }
+
+  List<char[]> prevState;
+  int RunSimulation(List<char[]> currentState) {
+    // Count the number of seats if we are at a stable state
+    if (StableCheck(currentState)) { return CountEmptySeats(currentState); }
+
+    // if we are here, we are not at stable state
+    // Save the current state into previous
+    prevState = currentState.Select(x => x.Select(y => y).ToArray()).ToList();
+    // Prepare the new state variable
+    var newState = currentState.Select(x => x.Select(y => y).ToArray()).ToList();
+    for (var i = 0; i < currentState.Count; i++) {
+      for (var j = 0; j < currentState[i].Length; j++) {
+        // If this is a floor space, ignore it
+        if (currentState[i][j] == '.') { continue; }
+        // Accumulate the number of filled seats around the current seat
+        var adjFilledSeats = 0;
+        // Top
+        if (i > 0 && currentState[i - 1][j] == '#') {
+          adjFilledSeats++;
+        }
+
+        // Top Right
+        if (i > 0 && j < currentState[i - 1].Length - 1 && currentState[i - 1][j + 1] == '#') {
+          adjFilledSeats++;
+        }
+
+        // Right
+        if (j < currentState[i].Length - 1 && currentState[i][j + 1] == '#') {
+          adjFilledSeats++;
+        }
+
+        // Bottom Right
+        if (i < currentState.Count - 1 && j < currentState[i + 1].Length - 1 && currentState[i + 1][j + 1] == '#') {
+          adjFilledSeats++;
+        }
+
+        // Bottom
+        if (i < currentState.Count - 1 && currentState[i + 1][j] == '#') {
+          adjFilledSeats++;
+        }
+
+        // Bottom Left
+        if (i < currentState.Count - 1 && j > 0 && currentState[i + 1][j - 1] == '#') {
+          adjFilledSeats++;
+        }
+
+        // Left
+        if (j > 0 && currentState[i][j - 1] == '#') {
+          adjFilledSeats++;
+        }
+
+        // Top Left
+        if (i > 0 && j > 0 && currentState[i - 1][j - 1] == '#') {
+          adjFilledSeats++;
+        }
+
+        if (adjFilledSeats >= 4 && currentState[i][j] == '#') {
+          // A filled seat with 4 or more filled seats adjacent to it should be emptied
+          newState[i][j] = 'L';
+        } else if (adjFilledSeats == 0 && currentState[i][j] == 'L') {
+          // An empty seat that should be filled
+          newState[i][j] = '#';
+        }
+      }
+    }
+    return RunSimulation(newState);
+  }
+
+  int RunSimulation2(List<char[]> currentState) {
+    // Count the number of seats if we are at a stable state
+    if (StableCheck(currentState)) { return CountEmptySeats(currentState); }
+    // if we are here, we are not at stable state
+    // Save the current state into previous
+    prevState = currentState.Select(x => x.Select(y => y).ToArray()).ToList();
+    // Prepare the new state variable
+    var newState = currentState.Select(x => x.Select(y => y).ToArray()).ToList();
+    var seatSpace = new[] { 'L', '#' };
+    for (var i = 0; i < currentState.Count; i++) {
+      for (var j = 0; j < currentState[i].Length; j++) {
+        // If this is a floor space, ignore it
+        if (currentState[i][j] == '.') { continue; }
+        // Accumulate the number of filled seats around the current seat
+        //   Send the sight vector until it hits the edge or the first seat in view (non-floor)
+        var adjFilledSeats = 0;
+        var offsetRow = 1;
+        var offsetCol = 1;
+        // Top
+        while (i - offsetRow >= 0 && !seatSpace.Contains(currentState[i - offsetRow][j])) {
+          offsetRow++;
+          offsetCol++;
+        }
+        if (i - offsetRow >= 0 && currentState[i - offsetRow][j] == '#') {
+          adjFilledSeats++;
+        }
+
+        // Top Right
+        offsetRow = 1;
+        offsetCol = 1;
+        while (i - offsetRow >= 0 && j + offsetCol < currentState[i - offsetRow].Length && !seatSpace.Contains(currentState[i - offsetRow][j + offsetCol])) {
+          offsetRow++;
+          offsetCol++;
+        }
+        if (i - offsetRow >= 0 && j + offsetCol < currentState[i - offsetRow].Length && currentState[i - offsetRow][j + offsetCol] == '#') {
+          adjFilledSeats++;
+        }
+
+        // Right
+        offsetRow = 1;
+        offsetCol = 1;
+        while (j + offsetCol < currentState[i].Length && !seatSpace.Contains(currentState[i][j + offsetCol])) {
+          offsetRow++;
+          offsetCol++;
+        }
+        if (j + offsetCol < currentState[i].Length && currentState[i][j + offsetCol] == '#') {
+          adjFilledSeats++;
+        }
+
+        // Bottom Right
+        offsetRow = 1;
+        offsetCol = 1;
+        while (i + offsetRow < currentState.Count && j + offsetCol < currentState[i + offsetRow].Length && !seatSpace.Contains(currentState[i + offsetRow][j + offsetCol])) {
+          offsetRow++;
+          offsetCol++;
+        }
+        if (i + offsetRow < currentState.Count && j + offsetCol < currentState[i + offsetRow].Length && currentState[i + offsetRow][j + offsetCol] == '#') {
+          adjFilledSeats++;
+        }
+
+        // Bottom
+        offsetRow = 1;
+        offsetCol = 1;
+        while (i + offsetRow < currentState.Count && !seatSpace.Contains(currentState[i + offsetRow][j])) {
+          offsetRow++;
+          offsetCol++;
+        }
+        if (i + offsetRow < currentState.Count && currentState[i + offsetRow][j] == '#') {
+          adjFilledSeats++;
+        }
+
+        // Bottom Left
+        offsetRow = 1;
+        offsetCol = 1;
+        while (i + offsetRow < currentState.Count && j - offsetCol >= 0 && !seatSpace.Contains(currentState[i + offsetRow][j - offsetCol])) {
+          offsetRow++;
+          offsetCol++;
+        }
+        if (i + offsetRow < currentState.Count && j - offsetCol >= 0 && currentState[i + offsetRow][j - offsetCol] == '#') {
+          adjFilledSeats++;
+        }
+
+        // Left
+        offsetRow = 1;
+        offsetCol = 1;
+        while (j - offsetCol >= 0 && !seatSpace.Contains(currentState[i][j - offsetCol])) {
+          offsetRow++;
+          offsetCol++;
+        }
+        if (j - offsetCol >= 0 && currentState[i][j - offsetCol] == '#') {
+          adjFilledSeats++;
+        }
+
+        // Top Left
+        offsetRow = 1;
+        offsetCol = 1;
+        while (i - offsetRow >= 0 && j - offsetCol >= 0 && !seatSpace.Contains(currentState[i - offsetRow][j - offsetCol])) {
+          offsetRow++;
+          offsetCol++;
+        }
+        if (i - offsetRow >= 0 && j - offsetCol >= 0 && currentState[i - offsetRow][j - offsetCol] == '#') {
+          adjFilledSeats++;
+        }
+
+        if (adjFilledSeats >= 5 && currentState[i][j] == '#') {
+          // A filled seat with 4 or more filled seats adjacent to it should be emptied
+          newState[i][j] = 'L';
+        } else if (adjFilledSeats == 0 && currentState[i][j] == 'L') {
+          // An empty seat that should be filled
+          newState[i][j] = '#';
+        }
+      }
+    }
+    return RunSimulation2(newState);
+  }
+
+  bool StableCheck(List<char[]> currentState) {
+    if (prevState is null) {
+      return false;
+    }
+    // Check for stable (prevState == currentState)
+    var stable = true;
+    for (var i = 0; i < currentState.Count; i++) {
+      for (var j = 0; j < currentState[i].Length; j++) {
+        if (currentState[i][j] != prevState[i][j]) {
+          stable = false;
+          break;
+        }
+      }
+    }
+    // Count the number of seats if we are at a stable state
+    return stable;
+  }
+
+  int CountEmptySeats(List<char[]> state) {
+    var acc = 0;
+    foreach (var curRow in state) {
+      acc += curRow.Where(x => x == '#').Count();
+    }
+    return acc;
   }
 }
