@@ -39,10 +39,11 @@ sqjhc mxmxvkd sbzzf (contains fish)
   int dayNum = 21;
   string dayTitle = "Allergen Assessment";
 
+  bool useSample = true;
   //TODO: Declare input;
 
   protected override async Task OnInitializedAsync() {
-    var resp = await HttpClient.GetAsync($"data/day{dayNum.ToString("0#")}/input.txt");
+    var resp = await HttpClient.GetAsync($"data/day{dayNum.ToString("0#")}/{(useSample ? "sample" : "input")}.txt");
     // TODO: Populate Input
   }
 
@@ -52,7 +53,7 @@ sqjhc mxmxvkd sbzzf (contains fish)
   }
 
   string GetAnswer2() {
-    // TODO: Solve Part 1
+    // TODO: Solve Part 2
     throw new NotImplementedException();
   }
 }

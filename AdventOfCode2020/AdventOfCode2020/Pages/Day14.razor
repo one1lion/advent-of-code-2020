@@ -55,10 +55,11 @@ result: 00000000000000000000000000000<em>1</em>0000<em>0</em>0  (decimal 64)
   int dayNum = 14;
   string dayTitle = "Docking Data";
 
+  bool useSample = true;
   //TODO: Declare input;
 
   protected override async Task OnInitializedAsync() {
-    var resp = await HttpClient.GetAsync($"data/day{dayNum.ToString("0#")}/input.txt");
+    var resp = await HttpClient.GetAsync($"data/day{dayNum.ToString("0#")}/{(useSample ? "sample" : "input")}.txt");
     // TODO: Populate Input
   }
 
@@ -68,7 +69,7 @@ result: 00000000000000000000000000000<em>1</em>0000<em>0</em>0  (decimal 64)
   }
 
   string GetAnswer2() {
-    // TODO: Solve Part 1
+    // TODO: Solve Part 2
     throw new NotImplementedException();
   }
 }

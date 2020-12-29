@@ -158,10 +158,11 @@ z=2
   int dayNum = 17;
   string dayTitle = "Conway Cubes";
 
+  bool useSample = true;
   //TODO: Declare input;
 
   protected override async Task OnInitializedAsync() {
-    var resp = await HttpClient.GetAsync($"data/day{dayNum.ToString("0#")}/input.txt");
+    var resp = await HttpClient.GetAsync($"data/day{dayNum.ToString("0#")}/{(useSample ? "sample" : "input")}.txt");
     // TODO: Populate Input
   }
 
@@ -171,7 +172,7 @@ z=2
   }
 
   string GetAnswer2() {
-    // TODO: Solve Part 1
+    // TODO: Solve Part 2
     throw new NotImplementedException();
   }
 }
