@@ -51,7 +51,62 @@
   </Solution1>
   <ProblemStatement2>
     <h3>-- Part 2 --</h3>
-
+    <p>The shuttle company is running a <span title="This is why you should never let me design a contest for a shuttle company.">contest</span>: one gold coin for anyone that can find the earliest timestamp such that the first bus ID departs at that time and each subsequent listed bus ID departs at that subsequent minute. (The first line in your input is no longer relevant.)</p>
+    <p>For example, suppose you have the same list of bus IDs as above:</p>
+<pre><code>7,13,x,x,59,x,31,19</code></pre>
+    <p>An <code>x</code> in the schedule means there are no constraints on what bus IDs must depart at that time.</p>
+    <p>This means you are looking for the earliest timestamp (called <code>t</code>) such that:</p>
+    <ul>
+      <li>
+        Bus ID <code>7</code> departs at timestamp <code>t</code>.
+      </li>
+      <li>Bus ID <code>13</code> departs one minute after timestamp <code>t</code>.</li>
+      <li>There are no requirements or restrictions on departures at two or three minutes after timestamp <code>t</code>.</li>
+      <li>Bus ID <code>59</code> departs four minutes after timestamp <code>t</code>.</li>
+      <li>There are no requirements or restrictions on departures at five minutes after timestamp <code>t</code>.</li>
+      <li>Bus ID <code>31</code> departs six minutes after timestamp <code>t</code>.</li>
+      <li>Bus ID <code>19</code> departs seven minutes after timestamp <code>t</code>.</li>
+    </ul>
+    <p>The only bus departures that matter are the listed bus IDs at their specific offsets from <code>t</code>. Those bus IDs can depart at other times, and other bus IDs can depart at those times.  For example, in the list above, because bus ID <code>19</code> must depart seven minutes after the timestamp at which bus ID <code>7</code> departs, bus ID <code>7</code> will always <em>also</em> be departing with bus ID <code>19</code> at seven minutes after timestamp <code>t</code>.</p>
+    <p>In this example, the earliest timestamp at which this occurs is <em><code>1068781</code></em>:</p>
+<pre><code>time     bus 7   bus 13  bus 59  bus 31  bus 19
+1068773    .       .       .       .       .
+1068774    D       .       .       .       .
+1068775    .       .       .       .       .
+1068776    .       .       .       .       .
+1068777    .       .       .       .       .
+1068778    .       .       .       .       .
+1068779    .       .       .       .       .
+1068780    .       .       .       .       .
+<em>1068781</em>    <em>D</em>       .       .       .       .
+<em>1068782</em>    .       <em>D</em>       .       .       .
+<em>1068783</em>    .       .       .       .       .
+<em>1068784</em>    .       .       .       .       .
+<em>1068785</em>    .       .       <em>D</em>       .       .
+<em>1068786</em>    .       .       .       .       .
+<em>1068787</em>    .       .       .       <em>D</em>       .
+<em>1068788</em>    D       .       .       .       <em>D</em>
+1068789    .       .       .       .       .
+1068790    .       .       .       .       .
+1068791    .       .       .       .       .
+1068792    .       .       .       .       .
+1068793    .       .       .       .       .
+1068794    .       .       .       .       .
+1068795    D       D       .       .       .
+1068796    .       .       .       .       .
+1068797    .       .       .       .       .
+</code></pre>
+    <p>In the above example, bus ID <code>7</code> departs at timestamp <code>1068788</code> (seven minutes after <code>t</code>). This is fine; the only requirement on that minute is that bus ID <code>19</code> departs then, and it does.</p>
+    <p>Here are some other examples:</p>
+    <ul>
+      <li>The earliest timestamp that matches the list <code>17,x,13,19</code> is <em><code>3417</code></em>.</li>
+      <li><code>67,7,59,61</code> first occurs at timestamp <em><code>754018</code></em>.</li>
+      <li><code>67,x,7,59,61</code> first occurs at timestamp <em><code>779210</code></em>.</li>
+      <li><code>67,7,x,59,61</code> first occurs at timestamp <em><code>1261476</code></em>.</li>
+      <li><code>1789,37,47,1889</code> first occurs at timestamp <em><code>1202161486</code></em>.</li>
+    </ul>
+    <p>However, with so many bus IDs in your list, surely the actual earliest timestamp will be larger than <code>100000000000000</code>!</p>
+    <p><em>What is the earliest timestamp such that all of the listed bus IDs depart at offsets matching their positions in the list?</em></p>
   </ProblemStatement2>
   <Solution2>
     @((MarkupString)new CodeColorizer().Colorize(@"", Languages.CSharp))
@@ -62,21 +117,75 @@
   int dayNum = 13;
   string dayTitle = "Shuttle Search";
 
-  bool useSample = true;
-  //TODO: Declare input;
+  bool useSample = false;
+  int departTime;
+  List<BusInfo> busInfos;
 
   protected override async Task OnInitializedAsync() {
     var resp = await HttpClient.GetAsync($"data/day{dayNum.ToString("0#")}/{(useSample ? "sample" : "input")}.txt");
-    // TODO: Populate Input
+    var respLines = (await resp.Content.ReadAsStringAsync()).Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+    departTime = int.Parse(respLines[0]);
+    var curInd = 0;
+    busInfos = respLines[1].Split(',').Select(x => new BusInfo() { Id = x, Index = curInd++ }).ToList();
   }
 
   string GetAnswer1() {
-    // TODO: Solve Part 1
-    throw new NotImplementedException();
+    Console.WriteLine($"Finding buses that depart on or after {departTime}");
+    busInfos.ForEach(x => x.CalculateNextDepartTime(departTime));
+    Console.WriteLine($"Bus Departure Schedule:\r\n{string.Join("\r\n", busInfos.OrderBy(x => x.NextDepartTime).Select(x => $"  Bus {x.Id}: {x.NextDepartTime} (ind: {x.Index})"))}");
+    var whichBus = busInfos.Single(x => x.NextDepartTime == busInfos.Where(y => y.Id != "x").Min(y => y.NextDepartTime));
+    return $"{whichBus.NumericId * (whichBus.NextDepartTime - departTime)} ({whichBus.Id} (ind: {whichBus.Index}) that departs at {whichBus.NextDepartTime})";
   }
 
+  // Followed a sample from https://github.com/alexchao26/advent-of-code-go/blob/main/2020/day13/main.go 
+  // who got the answer from somewhere else as well.  I almost reached this same
+  // conclusion, but gave up before I got there and search online for it
   string GetAnswer2() {
-    // TODO: Solve Part 2
-    throw new NotImplementedException();
+    var testBusses = busInfos.Where(x => x.Id != "x");
+    long timeValue = 0;
+    long runningProduct = 1;
+    foreach (var curBus in testBusses) {
+      // Adjust how much we are incrementing the time value by according to the index
+      // (i.e. time offset) for the given bus.  We know that the bus will leave x 
+      // (which is the number of time units) after the first bus if the given time
+      // value offset by when the bus should leave is evenly divisible by the Id for
+      // the bus (as we saw in part 1)
+      while ((timeValue + curBus.Index) % curBus.NumericId != 0) {
+        timeValue += runningProduct;
+      }
+      // We are using a product because multiplying by the time offset (index) will 
+      // keep all previous timeValue calculations in tact and will proportionally
+      // increase the value
+      runningProduct *= (long)curBus.NumericId;
+    }
+    return timeValue.ToString();
+  }
+
+  class BusInfo {
+    public int Index { get; init; }
+    public long NumericId { get; private set; }
+    public string Id {
+      get => NumericId == -1 ? "x" : NumericId.ToString();
+      set {
+        if (value == "x") { NumericId = -1; return; }
+        NumericId = long.Parse(value);
+      }
+    }
+
+    public long NextDepartTime { get; private set; }
+
+    public void CalculateNextDepartTime(long onOrAfter) {
+      if (Id == "x") {
+        NextDepartTime = -1;
+        return;
+      }
+      var curTime = onOrAfter;
+      while (curTime % NumericId != 0) {
+        // In order to be a valid departure time for this bus, the current time must
+        // be evenly divisible by the Id
+        curTime++;
+      }
+      NextDepartTime = curTime;
+    }
   }
 }

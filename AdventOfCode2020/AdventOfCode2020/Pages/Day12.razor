@@ -45,7 +45,28 @@ F11
   </Solution1>
   <ProblemStatement2>
     <h3>-- Part 2 --</h3>
-
+    <p>Before you can give the destination to the captain, you realize that the actual action meanings were printed on the back of the instructions the whole time.</p>
+    <p>Almost all of the actions indicate how to move a <em>waypoint</em> which is relative to the ship's position:</p>
+    <ul>
+      <li>Action <em><code>N</code></em> means to move the waypoint <em>north</em> by the given value.</li>
+      <li>Action <em><code>S</code></em> means to move the waypoint <em>south</em> by the given value.</li>
+      <li>Action <em><code>E</code></em> means to move the waypoint <em>east</em> by the given value.</li>
+      <li>Action <em><code>W</code></em> means to move the waypoint <em>west</em> by the given value.</li>
+      <li>Action <em><code>L</code></em> means to rotate the waypoint around the ship <em>left</em> (<em>counter-clockwise</em>) the given number of degrees.</li>
+      <li>Action <em><code>R</code></em> means to rotate the waypoint around the ship <em>right</em> (<em>clockwise</em>) the given number of degrees.</li>
+      <li>Action <em><code>F</code></em> means to move <em>forward</em> to the waypoint a number of times equal to the given value.</li>
+    </ul>
+    <p>The waypoint starts <em>10 units east and 1 unit north</em> relative to the ship. The waypoint is relative to the ship; that is, if the ship moves, the waypoint moves with it.</p>
+    <p>For example, using the same instructions as above:</p>
+    <ul>
+      <li><code>F10</code> moves the ship to the waypoint 10 times (a total of <em>100 units east and 10 units north</em>), leaving the ship at <em>east 100, north 10</em>. The waypoint stays 10 units east and 1 unit north of the ship.</li>
+      <li><code>N3</code> moves the waypoint 3 units north to <em>10 units east and 4 units north of the ship</em>. The ship remains at <em>east 100, north 10</em>.</li>
+      <li><code>F7</code> moves the ship to the waypoint 7 times (a total of <em>70 units east and 28 units north</em>), leaving the ship at <em>east 170, north 38</em>. The waypoint stays 10 units east and 4 units north of the ship.</li>
+      <li><code>R90</code> rotates the waypoint around the ship clockwise 90 degrees, moving it to <em>4 units east and 10 units south of the ship</em>. The ship remains at <em>east 170, north 38</em>.</li>
+      <li><code>F11</code> moves the ship to the waypoint 11 times (a total of <em>44 units east and 110 units south</em>), leaving the ship at <em>east 214, south 72</em>. The waypoint stays 4 units east and 10 units south of the ship.</li>
+    </ul>
+    <p>After these operations, the ship's Manhattan distance from its starting position is <code>214 + 72</code> = <em><code>286</code></em>.</p>
+    <p>Figure out where the navigation instructions actually lead. <em>What is the Manhattan distance between that location and the ship's starting position?</em></p>
   </ProblemStatement2>
   <Solution2>
     @((MarkupString)new CodeColorizer().Colorize(@"", Languages.CSharp))
@@ -56,21 +77,130 @@ F11
   int dayNum = 12;
   string dayTitle = "Rain Risk";
 
-  bool useSample = true;
-  //TODO: Declare input;
+  bool useSample = false;
+  List<Instruction> input;
 
   protected override async Task OnInitializedAsync() {
     var resp = await HttpClient.GetAsync($"data/day{dayNum.ToString("0#")}/{(useSample ? "sample" : "input")}.txt");
-    // TODO: Populate Input
+    input = (await resp.Content.ReadAsStringAsync()).Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).Select(x => new Instruction() { InstructionText = x }).ToList();
   }
+
+  Dictionary<int, char> DegreesToBearing = new Dictionary<int, char>() {
+    { 0, 'N' },
+    { 90, 'E' },
+    { 180, 'S' },
+    { 270, 'W' }
+  };
+
+  int currentRot = 90;
+  int distanceNorthSouth = 0;
+  int distanceEastWest = 0;
 
   string GetAnswer1() {
-    // TODO: Solve Part 1
-    throw new NotImplementedException();
+    foreach (var instr in input) {
+      PerformMove_Part1(instr);
+    }
+    return (Math.Abs(distanceEastWest) + Math.Abs(distanceNorthSouth)).ToString();
   }
 
+  int waypointNorthSouth = 1;
+  int waypointEastWest = 10;
   string GetAnswer2() {
-    // TODO: Solve Part 2
-    throw new NotImplementedException();
+    foreach (var instr in input) {
+      PerformMove_Part2(instr);
+    }
+    return (Math.Abs(distanceEastWest) + Math.Abs(distanceNorthSouth)).ToString();
+  }
+
+  void PerformMove_Part1(Instruction instr) {
+    switch (instr.Command) {
+      case 'N':
+        distanceNorthSouth += instr.Value;
+        break;
+      case 'S':
+        distanceNorthSouth -= instr.Value;
+        break;
+      case 'E':
+        distanceEastWest += instr.Value;
+        break;
+      case 'W':
+        distanceEastWest -= instr.Value;
+        break;
+      case 'L':
+        currentRot -= instr.Value;
+        if (currentRot < 0) { currentRot += 360; }
+        break;
+      case 'R':
+        currentRot += instr.Value;
+        if (currentRot >= 360) { currentRot -= 360; }
+        break;
+      case 'F':
+        PerformMove_Part1(new Instruction() {
+          Command = DegreesToBearing[currentRot],
+          Value = instr.Value
+        });
+        break;
+    }
+  }
+
+  void PerformMove_Part2(Instruction instr) {
+    switch (instr.Command) {
+      case 'N':
+        Console.WriteLine($"Moving the waypoint {instr.Value} units North");
+        waypointNorthSouth += instr.Value;
+        break;
+      case 'S':
+        Console.WriteLine($"Moving the waypoint {instr.Value} units South");
+        waypointNorthSouth -= instr.Value;
+        break;
+      case 'E':
+        Console.WriteLine($"Moving the waypoint {instr.Value} units East");
+        waypointEastWest += instr.Value;
+        break;
+      case 'W':
+        Console.WriteLine($"Moving the waypoint {instr.Value} units West");
+        waypointEastWest -= instr.Value;
+        break;
+      case 'L': {
+          Console.WriteLine($"Rotating Ship {instr.Value} Degrees Counter-Clockwise");
+          var numRots = instr.Value / 90;
+          for (var i = 0; i < numRots; i++) {
+            // In all cases, North and South values will change their negative/positive signs when
+            // moving to West and East, respectively.  East and West will retain their signs
+            (waypointEastWest, waypointNorthSouth) = (-waypointNorthSouth, waypointEastWest);
+          }
+        }
+        break;
+      case 'R': {
+          Console.WriteLine($"Rotating Ship {instr.Value} Degrees Clockwise");
+          var numRots = instr.Value / 90;
+          for (var i = 0; i < numRots; i++) {
+            // In all cases, North and South values will retain their negative/positive signs when
+            // moving to East and West, respectively.  East and West will change their signs
+            (waypointEastWest, waypointNorthSouth) = (waypointNorthSouth, -waypointEastWest);
+          }
+        }
+        break;
+      case 'F':
+        Console.WriteLine($"Moving Ship:\r\n  {(waypointEastWest >= 0 ? "East" : "West")} {Math.Abs(waypointEastWest)} ({instr.Value} Times)\r\n  {(waypointNorthSouth >= 0 ? "North" : "South")} {Math.Abs(waypointNorthSouth)} ({instr.Value} Times)");
+        distanceEastWest += instr.Value * waypointEastWest;
+        distanceNorthSouth += instr.Value * waypointNorthSouth;
+        break;
+    }
+    Console.WriteLine($"Waypoint Position:\r\n  {(waypointEastWest >= 0 ? "East" : "West")}: {Math.Abs(waypointEastWest)}\r\n  {(waypointNorthSouth >= 0 ? "North" : "South")}: {Math.Abs(waypointNorthSouth)}");
+    Console.WriteLine($"Ship's Distance:\r\n  {(distanceEastWest >= 0 ? "East" : "West")}: {Math.Abs(distanceEastWest)}\r\n  {(distanceNorthSouth >= 0 ? "North" : "South")}: {Math.Abs(distanceNorthSouth)}");
+  }
+
+  class Instruction {
+    public string InstructionText {
+      get => $"{Command}{Value}";
+      set {
+        Command = value[0];
+        Value = int.Parse(value.Substring(1));
+      }
+    }
+
+    public char Command { get; set; }
+    public int Value { get; set; }
   }
 }
