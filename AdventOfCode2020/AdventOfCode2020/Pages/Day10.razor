@@ -140,7 +140,7 @@
   int dayNum = 10;
   string dayTitle = "Adapter Array";
 
-  bool useSample = true;
+  bool useSample = false;
   List<int> input;
 
   protected override async Task OnInitializedAsync() {
@@ -167,69 +167,60 @@
   }
 
   string GetAnswer2() {
-    return CountCombos().ToString();
-    //// brute force approach that works on smaller data sets
-    //var combinations = new List<List<int>> {
-    //  input.Select(x => x).OrderBy(x => x).ToList()
-    //};
+    // Break up the main set into smaller sets and find the combinations
+    long combos = 1;
+    var subSet = new List<int>();
+    for (var i = 0; i < input.Count - 1; i++) {
+      subSet.Add(input[i]);
 
-    //for (var i = 0; i < input.Count - 2; i++) {
-    //  var curAddCombos = new List<List<int>>();
-    //  foreach (var combo in combinations) {
-    //    // Check if it is valid to remove the current adapter from each combination
-    //    var curAdapterIndex = combo.IndexOf(input[i]);
-    //    try {
-    //      var prevVal = curAdapterIndex == 0 ? 0 : combo[curAdapterIndex - 1];
-    //      var nextVal = combo[curAdapterIndex + 1];
-    //      if (nextVal - prevVal <= 3) {
-    //        curAddCombos.Add(combo.Where(x => x != input[i]).OrderBy(x => x).ToList());
-    //      }
-    //    } catch (Exception ex) {
-    //      Console.Error.WriteLine($"Error with {input[i]} at index {i}");
-    //      Console.Error.WriteLine(ex);
-    //    }
-    //  }
-    //  if (curAddCombos.Any()) {
-    //    combinations.AddRange(curAddCombos);
-    //  }
-    //}
-    //return combinations.Count.ToString();
-  }
-
-  long CountCombos() {
-    var sequenceCounts = new List<int>();
-    var currAcc = 0;
-    for (var i = 0; i < input.Count; i++) {
-      if (i == 0) {
-        if (input[i] == 1) {
-          currAcc++;
-        } else {
-          sequenceCounts.Add(1);
+      if (input[i + 1] - input[i] != 1) {
+        if (subSet.Count > 1) {
+          Console.WriteLine($"Calculating Combos for subset:\r\n{string.Join("\r\n", subSet)}");
+          combos *= CountCombos(subSet);
         }
-      } else
-      if (input[i] - input[i - 1] == 1) {
-        currAcc++;
-      } else {
-        sequenceCounts.Add(currAcc);
-        currAcc = 1;
+        subSet.Clear();
+        subSet.Add(input[i]);
       }
     }
-    //if (input[input.Count - 1] - input[input.Count - 2] != 1) {
-    //  sequenceCounts.Add(currAcc);
-    //}
-    Console.WriteLine(string.Join("\r\n", sequenceCounts));
-    long combos = 1;
-    for (var i = 0; i < sequenceCounts.Count; i++) {
-      combos *= ToTribunacci(sequenceCounts[i]);
-    }
-    //1973822685184 -- Not right, but right for someone else
-    return combos;
+
+    return combos.ToString();
   }
 
-  int ToTribunacci(int val) => val switch {
-    0 => 0,
-    1 => 1,
-    2 => 1,
-    _ => ToTribunacci(val - 1) + ToTribunacci(val - 2) + ToTribunacci(val - 3)
-  };
+  long CountCombos(List<int> subSet) {
+    // Brute force approach - works for smaller sets
+    // Goes through every possible combination when looking at each adapter in turn 
+    // and checking if it is possible to remove it from each previous combination
+
+    // This is a list of valid combinations (a combination is a list of adapters that can
+    //   be connected to each other)
+    var combinations = new List<List<int>>() {
+      subSet.Select(x => x).OrderBy(x => x).ToList()
+    };
+
+    // For each position in the input, find out what combinations can be valid for keeping or
+    // removing that adapter, checking each existing combination and adding any extras
+    for (var i = 0; i < subSet.Count - 1; i++) {
+      // The combinations being added this time
+      var curAddCombos = new List<List<int>>();
+
+      foreach (var combo in combinations) {
+        // Check if it is valid to remove the current adapter from each combination
+        var curAdapterIndex = combo.IndexOf(subSet[i]);
+        // Check the values of the adapters before and after to see if this adapter can
+        //   be removed
+        // If this is the first adapter, then set the prev adapter's value to 0 (the outlet)
+        var prevVal = curAdapterIndex == 0 ? 0 : combo[curAdapterIndex - 1];
+        var nextVal = combo[curAdapterIndex + 1];
+        if (nextVal - prevVal <= 3) {
+          // This adapter can be removed and still allow the connection, add the valid combo
+          curAddCombos.Add(combo.Where(x => x != subSet[i]).OrderBy(x => x).ToList());
+        }
+      }
+      if (curAddCombos.Any()) {
+        // If there were new combos to add, add them here
+        combinations.AddRange(curAddCombos);
+      }
+    }
+    return combinations.Count;
+  }
 }
