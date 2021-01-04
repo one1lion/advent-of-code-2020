@@ -97,7 +97,9 @@ result:  00000000000000000000000000000001<em>X</em>0<em>XX</em>
   string dayTitle = "Docking Data";
 
   bool useSample = false;
+  bool useSamplePart2 = false;
   List<IInstruction> input = new List<IInstruction>();
+  List<IInstruction> input_part2 = new List<IInstruction>();
 
   protected override async Task OnInitializedAsync() {
     var resp = await HttpClient.GetAsync($"data/day{dayNum.ToString("0#")}/{(useSample ? "sample" : "input")}.txt");
@@ -112,12 +114,30 @@ result:  00000000000000000000000000000001<em>X</em>0<em>XX</em>
       }
       Console.WriteLine(newInstruction.InstructionText);
       input.Add(newInstruction);
+      if (!useSamplePart2 && !useSample) { input_part2.Add(newInstruction); }
+    }
+
+    // Setup when using the sample for Part 2
+    if (useSamplePart2 || useSample) {
+      resp = await HttpClient.GetAsync($"data/day{dayNum.ToString("0#")}/{(useSamplePart2 ? "sample_part2" : "input")}.txt");
+      lines = (await resp.Content.ReadAsStringAsync()).Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+      foreach (var curLine in lines) {
+        IInstruction newInstruction;
+        if (curLine.StartsWith("mask")) {
+          newInstruction = new MaskInstruction() { InstructionText = curLine };
+        } else {
+          newInstruction = new MemoryInstruction() { InstructionText = curLine };
+        }
+        Console.WriteLine(newInstruction.InstructionText);
+        input_part2.Add(newInstruction);
+      }
     }
   }
 
-  Dictionary<int, long> memory = new Dictionary<int, long>();
+  Dictionary<long, long> memory = default;
   string GetAnswer1() {
-    MaskInstruction curMask = null;
+    MaskInstruction curMask = default;
+    memory = new Dictionary<long, long>();
     foreach (var curInstr in input) {
       switch (curInstr.Type) {
         case InstructionType.Mask:
@@ -144,8 +164,32 @@ result:  00000000000000000000000000000001<em>X</em>0<em>XX</em>
   }
 
   string GetAnswer2() {
-    // TODO: Solve Part 2
-    throw new NotImplementedException();
+    MaskInstruction curMask = null;
+    memory = new Dictionary<long, long>();
+    foreach (var curInstr in input_part2) {
+      switch (curInstr.Type) {
+        case InstructionType.Mask:
+          // Change the current mask being used
+          curMask = (MaskInstruction)curInstr;
+          break;
+        case InstructionType.MemorySet:
+          var memInstr = (MemoryInstruction)curInstr;
+          // Apply the current mask to the current instruction's address
+          memInstr.ApplyAddressMask(curMask);
+
+          foreach (var curAddress in memInstr.AddressesToModify) {
+            // Set the current memory value to the updated value
+            if (!memory.ContainsKey(curAddress)) {
+              memory.Add(curAddress, memInstr.Value);
+            } else {
+              memory[curAddress] = memInstr.Value;
+            }
+          }
+          break;
+      }
+    }
+
+    return memory.Sum(x => x.Value).ToString();
   }
 
   enum InstructionType {
@@ -186,22 +230,67 @@ result:  00000000000000000000000000000001<em>X</em>0<em>XX</em>
       }
     }
 
-    public int Address { get; set; }
-    public long Value {
-      get {
-        long sumBits = 0;
-        var index = 35;
-        foreach (var bit in Bits) {
-          if (bit) { sumBits += (long)Math.Pow(2, index); }
-          index--;
-        }
-        return sumBits;
+    int _Address; // Original Address
+    public int Address {
+      get => _Address;
+      set {
+        _Address = value;
+        AddressBits = Convert.ToString(value, 2).PadLeft(36, '0').Select(c => c == '1').ToList();
       }
+    }
+    public long Value {
+      get => Bits.ToLong();
       set {
         Bits = Convert.ToString(value, 2).PadLeft(36, '0').Select(c => c == '1').ToList();
       }
     }
 
     public List<bool> Bits { get; set; }
+
+    public List<bool> AddressBits { get; set; }
+
+    public List<long> AddressesToModify { get; private set; }
+
+    public void ApplyAddressMask(MaskInstruction curMask) {
+      List<int> floatingBitIndexes = new List<int>();
+      // Make a copy of the original address bits
+      List<bool> maskedAddress = AddressBits.Select(x => x).ToList();
+      // Reset the floating bits index list
+      floatingBitIndexes = new List<int>();
+      for (var i = AddressBits.Count - 1; i >= 0; i--) {
+        switch (curMask.BitMask[i]) {
+          case 'X':
+            floatingBitIndexes.Add(i);
+            maskedAddress[i] = false; // Default it to 0 to begin with
+            break;
+          default:
+            maskedAddress[i] |= curMask.BitMask[i] == '1';
+            break;
+        }
+      }
+
+      AddressesToModify = new List<long>() {
+        maskedAddress.ToLong()
+      };
+
+      foreach (var curIndex in floatingBitIndexes) {
+        var newAddressesToAdd = new List<long>();
+        maskedAddress[curIndex] = true;
+        var curValue = maskedAddress.ToLong();
+        foreach (var curAddress in AddressesToModify) {
+          newAddressesToAdd.Add(curAddress + (long)Math.Pow(2, 35 - curIndex));
+        }
+        maskedAddress[curIndex] = false;
+        // This will accumulate all possible values for addresses
+        AddressesToModify.AddRange(newAddressesToAdd);
+      }
+
+      // To verify, we can check the number of addresses to modify against the number of
+      // floating bits.  There should be 2^n where n is the number of floating bits.
+      if (AddressesToModify.Count != Math.Pow(2, floatingBitIndexes.Count)) {
+        Console.Error.WriteLine("Invalid number of addresses to modify");
+      }
+    }
+
   }
 }
