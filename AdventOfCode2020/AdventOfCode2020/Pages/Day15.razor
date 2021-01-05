@@ -41,6 +41,20 @@
       <li>Given the starting numbers <code>3,2,1</code>, the <code>2020</code>th number spoken is <code>438</code>.</li>
       <li>Given the starting numbers <code>3,1,2</code>, the <code>2020</code>th number spoken is <code>1836</code>.</li>
     </ul>
+    <p>
+      <label><input type="checkbox" @bind="useSample" /> Use Sample?</label>
+    </p>
+    <p style="@(!useSample ? "display:none" : "")">
+      <select @bind="sampleInput">
+        <option value="0,3,6">0,3,6 -> Should Output 436</option>
+        <option value="1,3,2">1,3,2 -> Should Output 1</option>
+        <option value="2,1,3">2,1,3 -> Should Output 10</option>
+        <option value="1,2,3">1,2,3 -> Should Output 27</option>
+        <option value="2,3,1">2,3,1 -> Should Output 78</option>
+        <option value="3,2,1">3,2,1 -> Should Output 438</option>
+        <option value="3,1,2">3,1,2 -> Should Output 1836</option>
+      </select>
+    </p>
     <p>Given your starting numbers, <em>what will be the <code>2020</code>th number spoken?</em></p>
   </ProblemStatement1>
   <Solution1>
@@ -55,25 +69,66 @@
   </Solution2>
 </DayDisplay>
 
-@code {
+@code { 
   int dayNum = 15;
   string dayTitle = "Rambunctious Recitation";
-
+  string sampleInput = "0,3,6";
   bool useSample = true;
-  //TODO: Declare input;
-
+  List<int> input;
+  List<int> actualInput;
   protected override async Task OnInitializedAsync() {
-    var resp = await HttpClient.GetAsync($"data/day{dayNum.ToString("0#")}/{(useSample ? "sample" : "input")}.txt");
-    // TODO: Populate Input
+    var resp = await HttpClient.GetAsync($"data/day{dayNum.ToString("0#")}/input.txt");
+    actualInput = (await resp.Content.ReadAsStringAsync()).Split(',', StringSplitOptions.RemoveEmptyEntries).Select(x => int.Parse(x)).ToList();
+    Console.WriteLine(string.Join("\r\n", actualInput));
   }
 
   string GetAnswer1() {
-    // TODO: Solve Part 1
-    throw new NotImplementedException();
+    if (useSample) {
+      sampleInput = string.IsNullOrWhiteSpace(sampleInput) ? "0,3,6" : sampleInput;
+      input = sampleInput.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(x => int.Parse(x)).ToList();
+    } else {
+      input = actualInput;
+    }
+    Console.WriteLine(string.Join("\r\n", input));
+
+    // The first three numbers are skipped in the sample...so the first input.Count numbers are
+    // Printing out just for the sake of seeing it, and in case part 2 needs something like it
+    var newList = input.Select(x => x).ToList();
+    for (var i = 0; i < newList.Count; i++) {
+      Console.WriteLine($"Turn {i + 1}: The {MakeNthString(i + 1)} number spoken is a starting number, {newList[i]}");
+    }
+
+    for (var i = newList.Count; i < 2020; i++) {
+      var lastNumSpoken = newList[i - 1];
+
+      // Check for when the previous number was last spoken (do not include the previous turn
+      // when checking)
+      var mostRecentlySpoken = newList.LastIndexOf(lastNumSpoken, newList.Count - 2);
+      Console.Write($"Turn {i + 1}: The last number spoken was {lastNumSpoken}. ");
+      if (mostRecentlySpoken == -1) {
+        // The number was never spoken
+        newList.Add(0);
+        Console.WriteLine($"Since that was the first time the number had been spoken, spoke 0.");
+      } else {
+        // This number was spoken before - Speak the difference between the previous turn number
+        // and the turn number for when it was spoken last.  Current turn is `i`, so previous is
+        // `i - 1`
+        newList.Add(i - 1 - mostRecentlySpoken);
+        Console.WriteLine($"Since that number had been spoken before on the {MakeNthString(mostRecentlySpoken + 1)} turn and the previous turn is {i}, spoke {i - 1 - mostRecentlySpoken}.");
+      }
+    }
+    return newList[2019].ToString();
   }
 
   string GetAnswer2() {
     // TODO: Solve Part 2
     throw new NotImplementedException();
   }
+
+  string MakeNthString(int forNum) => forNum + forNum.ToString().Last() switch {
+    '1' => "st",
+    '2' => "nd",
+    '3' => "rd",
+    _ => "th"
+  }; 
 }
