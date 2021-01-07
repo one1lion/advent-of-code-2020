@@ -79,18 +79,18 @@
   </Solution2>
 </DayDisplay>
 
-@code { 
+@code {
   int dayNum = 15;
   string dayTitle = "Rambunctious Recitation";
   string sampleInput = "0,3,6";
   bool useSample = true;
   bool showConsoleLog = false;
-  List<int> input;
-  List<int> actualInput;
+  List<long> input;
+  List<long> actualInput;
 
   protected override async Task OnInitializedAsync() {
     var resp = await HttpClient.GetAsync($"data/day{dayNum.ToString("0#")}/input.txt");
-    actualInput = (await resp.Content.ReadAsStringAsync()).Split(',', StringSplitOptions.RemoveEmptyEntries).Select(x => int.Parse(x)).ToList();
+    actualInput = (await resp.Content.ReadAsStringAsync()).Split(',', StringSplitOptions.RemoveEmptyEntries).Select(x => long.Parse(x)).ToList();
     if (showConsoleLog) { Console.WriteLine(string.Join("\r\n", actualInput)); }
   }
 
@@ -103,12 +103,12 @@
   }
 
   // Only track the spoken numbers and their most recently spoken turn
-  Dictionary<int, int> lastSpokenNumbers;
-  int GetNthNumber(int n) {
-    lastSpokenNumbers = new Dictionary<int, int>();
+  Dictionary<long, long> lastSpokenNumbers;
+  long GetNthNumber(long n) {
+    lastSpokenNumbers = new Dictionary<long, long>();
     if (useSample) {
       sampleInput = string.IsNullOrWhiteSpace(sampleInput) ? "0,3,6" : sampleInput;
-      input = sampleInput.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(x => int.Parse(x)).ToList();
+      input = sampleInput.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(x => long.Parse(x)).ToList();
     } else {
       input = actualInput;
     }
@@ -124,7 +124,10 @@
     var lastNumSpoken = input[input.Count - 1];
     var stepSize = Math.Floor((double)n / 100);
     for (var i = input.Count; i < n; i++) {
-      if((i + 1) % stepSize == 0) { Console.WriteLine($"{(int)(((i) / (double)n) * 100)}% Complete"); }
+      if ((i + 1) % stepSize == 0) {
+        var spokenNumCount = lastSpokenNumbers.Keys.Count;
+        Console.WriteLine($"{(int)(((i) / (double)n) * 100)}% Complete ({spokenNumCount} unique spoken number{(spokenNumCount != 1 ? "s" : "")} after {i + 1} turn{(i + 1 != 1 ? "s" : "")})");
+      }
       // Check for when the previous number was last spoken (do not include the previous turn
       // when checking)
       var mostRecentlySpoken = lastSpokenNumbers.ContainsKey(lastNumSpoken) ? lastSpokenNumbers[lastNumSpoken] : -1;
@@ -147,7 +150,7 @@
     return lastNumSpoken;
   }
 
-  void TrackLastSpokenNumber(int number, int turn) {
+  void TrackLastSpokenNumber(long number, long turn) {
     if (!lastSpokenNumbers.ContainsKey(number)) {
       lastSpokenNumbers.Add(number, turn);
     } else {
@@ -155,7 +158,7 @@
     }
   }
 
-  string MakeNthString(int forNum) => forNum + forNum.ToString().Last() switch {
+  string MakeNthString(long forNum) => forNum + forNum.ToString().Last() switch {
     '1' => "st",
     '2' => "nd",
     '3' => "rd",
