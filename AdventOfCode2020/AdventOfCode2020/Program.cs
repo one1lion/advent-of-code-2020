@@ -7,6 +7,8 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using Blazored.LocalStorage;
+using Blazored.SessionStorage;
 
 namespace AdventOfCode2020 {
   public class Program {
@@ -15,6 +17,9 @@ namespace AdventOfCode2020 {
       builder.RootComponents.Add<App>("#app");
 
       builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+
+      builder.Services.AddBlazoredSessionStorage();
+      builder.Services.AddBlazoredLocalStorage();
 
       await builder.Build().RunAsync();
     }

@@ -1,7 +1,7 @@
 ﻿@Title
 
 @ProblemStatement1
-<p>Part 1: <span @onclick="_ => ShowAnswer(1)" style="@(!showAnswer1 ? "cursor: pointer" : "")">@answer1</span></p>
+<p>Part 1: <span @onclick="async _ => await ShowAnswer(1)" style="@(!showAnswer1 ? "cursor: pointer" : "")">@answer1</span></p>
 
 @if (showAnswer1) {
   @Solution1
@@ -10,7 +10,7 @@
 <hr />
 
 @ProblemStatement2
-<p>Part 2: <span @onclick="_ => ShowAnswer(2)" style="@(!showAnswer2 ? "cursor: pointer" : "")">@answer2</span></p>
+<p>Part 2: <span @onclick="async _ => await ShowAnswer(2)" style="@(!showAnswer2 ? "cursor: pointer" : "")">@answer2</span></p>
 @if (showAnswer2) {
   @Solution2
 }
@@ -25,17 +25,26 @@
 
   [Parameter] public Func<string> GetAnswer1 { get; set; }
   [Parameter] public Func<string> GetAnswer2 { get; set; }
+  [Parameter] public Func<Task<string>> GetAnswer1Async { get; set; }
+  [Parameter] public Func<Task<string>> GetAnswer2Async { get; set; }
 
   string answer1 = "Show Answer", answer2 = "Show Answer";
   bool showAnswer1, showAnswer2;
 
-  void ShowAnswer(int curPart) {
+  async Task ShowAnswer(int curPart) {
     if (curPart == 1) {
-      answer1 = GetAnswer1.Invoke();
+      answer1 = GetAnswer1?.Invoke();
+      if(string.IsNullOrWhiteSpace(answer1)) {
+        answer1 = await GetAnswer1Async?.Invoke();
+      }
       showAnswer1 = true;
     } else {
-      answer2 = GetAnswer2.Invoke();
+      answer2 = GetAnswer2?.Invoke();
+      if (string.IsNullOrWhiteSpace(answer2)) {
+        answer2 = await GetAnswer2Async?.Invoke();
+      }
       showAnswer2 = true;
     }
+    await InvokeAsync(() => StateHasChanged());
   }
 }

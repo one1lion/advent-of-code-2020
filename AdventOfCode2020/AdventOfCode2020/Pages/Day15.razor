@@ -1,9 +1,12 @@
 ﻿@page "/day15"
+@using Blazored.SessionStorage
 
 @inject HttpClient HttpClient
+@inject ISessionStorageService SessionStorage
 
-<DayDisplay GetAnswer1="GetAnswer1"
-            GetAnswer2="GetAnswer2">
+
+<DayDisplay GetAnswer1Async="GetAnswer1"
+            GetAnswer2Async="GetAnswer2">
   <Title>
     <h2>--- Day @dayNum: @dayTitle ---</h2>
   </Title>
@@ -83,6 +86,7 @@
   int dayNum = 15;
   string dayTitle = "Rambunctious Recitation";
   string sampleInput = "0,3,6";
+
   bool useSample = true;
   bool showConsoleLog = false;
   List<long> input;
@@ -94,18 +98,19 @@
     if (showConsoleLog) { Console.WriteLine(string.Join("\r\n", actualInput)); }
   }
 
-  string GetAnswer1() {
-    return GetNthNumber(2020).ToString();
+  Task<string> GetAnswer1() {
+    return GetNthNumber(2020);
   }
 
-  string GetAnswer2() {
-    return GetNthNumber(30000000).ToString();
+  Task<string> GetAnswer2() {
+    return GetNthNumber(30000000);
   }
 
   // Only track the spoken numbers and their most recently spoken turn
-  Dictionary<long, long> lastSpokenNumbers;
-  long GetNthNumber(long n) {
-    lastSpokenNumbers = new Dictionary<long, long>();
+  //Dictionary<long, long> lastSpokenNumbers;
+  async Task<string> GetNthNumber(long n) {
+    //lastSpokenNumbers = new Dictionary<long, long>();
+    await SessionStorage.ClearAsync();
     if (useSample) {
       sampleInput = string.IsNullOrWhiteSpace(sampleInput) ? "0,3,6" : sampleInput;
       input = sampleInput.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(x => long.Parse(x)).ToList();
@@ -117,23 +122,32 @@
     // The first three numbers are skipped in the sample...so the first input.Count numbers are
     // Printing out just for the sake of seeing it, and in case part 2 needs something like it
     for (var i = 0; i < input.Count; i++) {
-      if (showConsoleLog) { Console.WriteLine($"Turn {i + 1}: The {MakeNthString(i + 1)} number spoken is a starting number, {input[i]}"); }
-      TrackLastSpokenNumber(input[i], i);
+      Console.WriteLine($"Turn {i + 1}: The {MakeNthString(i + 1)} number spoken is a starting number, {input[i]}");
+      await TrackLastSpokenNumber(input[i], i);
     }
 
     var lastNumSpoken = input[input.Count - 1];
     var stepSize = Math.Floor((double)n / 100);
     for (var i = input.Count; i < n; i++) {
       if ((i + 1) % stepSize == 0) {
-        var spokenNumCount = lastSpokenNumbers.Keys.Count;
+        //var spokenNumCount = lastSpokenNumbers.Keys.Count;
+        var spokenNumCount = await SessionStorage.LengthAsync();
         Console.WriteLine($"{(int)(((i) / (double)n) * 100)}% Complete ({spokenNumCount} unique spoken number{(spokenNumCount != 1 ? "s" : "")} after {i + 1} turn{(i + 1 != 1 ? "s" : "")})");
+        await InvokeAsync(() => StateHasChanged());
       }
       // Check for when the previous number was last spoken (do not include the previous turn
       // when checking)
-      var mostRecentlySpoken = lastSpokenNumbers.ContainsKey(lastNumSpoken) ? lastSpokenNumbers[lastNumSpoken] : -1;
+      //var mostRecentlySpoken = lastSpokenNumbers.ContainsKey(lastNumSpoken) ? lastSpokenNumbers[lastNumSpoken] : -1;
+      long mostRecentlySpoken = -1;
+      try {
+        mostRecentlySpoken = await SessionStorage.GetItemAsync<long?>(lastNumSpoken.ToString()) ?? -1;
+      } catch (Exception) {
+        mostRecentlySpoken = -1;
+      }
+
       if (showConsoleLog) { Console.Write($"Turn {i + 1}: The last number spoken was {lastNumSpoken}. "); }
-      if (i > input.Count) { TrackLastSpokenNumber(lastNumSpoken, i - 1); }
-      if (mostRecentlySpoken == -1) {
+      if (i > input.Count) { await TrackLastSpokenNumber(lastNumSpoken, i - 1); }
+      if (mostRecentlySpoken <= -1) {
         // The number was never spoken
         lastNumSpoken = 0;
         if (showConsoleLog) { Console.WriteLine($"Since that was the first time the number had been spoken, spoke 0."); }
@@ -145,17 +159,18 @@
         if (showConsoleLog) { Console.WriteLine($"Since that number had been spoken before on the {MakeNthString(mostRecentlySpoken + 1)} turn and the previous turn is {i}, spoke {i - 1 - mostRecentlySpoken}."); }
       }
     }
-    TrackLastSpokenNumber(lastNumSpoken, n - 1);
+    await TrackLastSpokenNumber(lastNumSpoken, n - 1);
     Console.WriteLine($"100% Complete");
-    return lastNumSpoken;
+    return lastNumSpoken.ToString();
   }
 
-  void TrackLastSpokenNumber(long number, long turn) {
-    if (!lastSpokenNumbers.ContainsKey(number)) {
-      lastSpokenNumbers.Add(number, turn);
-    } else {
-      lastSpokenNumbers[number] = turn;
-    }
+  async Task TrackLastSpokenNumber(long number, long turn) {
+    await SessionStorage.SetItemAsync(number.ToString(), turn);
+    //if (!lastSpokenNumbers.ContainsKey(number)) {
+    //  lastSpokenNumbers.Add(number, turn);
+    //} else {
+    //  lastSpokenNumbers[number] = turn;
+    //}
   }
 
   string MakeNthString(long forNum) => forNum + forNum.ToString().Last() switch {
